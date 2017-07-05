@@ -102,6 +102,10 @@ license {
 
 group = 'TechReborn'
 
+configurations {
+	bundle
+	compile.extendsFrom bundle
+}
 
 dependencies {
 	deobfCompile('RebornCore:RebornCore-1.12:+:universal') {
@@ -110,9 +114,10 @@ dependencies {
 	deobfCompile "mezz.jei:jei_1.12:+"
 	compile "mcp.mobius.waila:Hwyla:+"
 	compile "net.darkhax.tesla:Tesla-1.12:1.0.59:deobf"
-	compile "com.elytradev:concrete:0.3.1:common"
-	compile "com.elytradev:concrete:0.3.1:network"
-	compile "com.elytradev:concrete:0.3.1:reflect"
+
+	bundle "com.elytradev:concrete:0.3.1:common"
+	bundle "com.elytradev:concrete:0.3.1:network"
+	bundle "com.elytradev:concrete:0.3.1:reflect"
 
 	//1.11 updates
 	//deobfCompile "slimeknights:TConstruct:1.10.2-2.5.3.jenkins384"
@@ -166,15 +171,12 @@ task deobfJar(type: Jar) {
 jar {
 	exclude "**/*.psd"
 	classifier = 'universal'
-	//    configurations.shade.each { dep ->
-	//        from(project.zipTree(dep)){
-	//            include 'ic2/api/'
-	//            include 'forestry/api/fuels/'
-	//            exclude 'META-INF', 'META-INF/**', '**/*.java'
-	//        }
-	//    }
 	manifest {
-		attributes 'FMLAT': 'techreborn_at.cfg'
+		attributes 'FMLAT': 'techreborn_at.cfg',
+			"ContainedDeps": configurations.bundle.collect { it.getName() }.join(' ')
+	}
+	into('/') {
+		from configurations.bundle
 	}
 }
 
