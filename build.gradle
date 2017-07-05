@@ -68,6 +68,10 @@ repositories {
 		name "BuildCraft"
 		artifactPattern "http://www.mod-buildcraft.com/releases/BuildCraft/[revision]/[module]-[revision].[ext]"
 	}
+	maven { // Concrete
+		name = "elytradev"
+		url = "http://repo.elytradev.com"
+	}
 }
 
 configurations {
@@ -106,6 +110,9 @@ dependencies {
 	deobfCompile "mezz.jei:jei_1.12:+"
 	compile "mcp.mobius.waila:Hwyla:+"
 	compile "net.darkhax.tesla:Tesla-1.12:1.0.59:deobf"
+	compile "com.elytradev:concrete:0.3.1:common"
+	compile "com.elytradev:concrete:0.3.1:network"
+	compile "com.elytradev:concrete:0.3.1:reflect"
 
 	//1.11 updates
 	//deobfCompile "slimeknights:TConstruct:1.10.2-2.5.3.jenkins384"
@@ -114,6 +121,11 @@ dependencies {
 	compile "CraftTweaker2:CraftTweaker2-MC1120-Main:1.12-4.0.0.5"
 	deobfCompile  'net.industrial-craft:industrialcraft-2:2.8.2-ex112'
 	compile name: 'buildcraft', version: '7.99.4', ext: 'jar'
+
+	testCompile 'junit:junit:4.12'
+	testCompile 'org.assertj:assertj-core:3.8.0'
+	testCompile 'org.mockito:mockito-core:2.8.47'
+
 }
 
 
