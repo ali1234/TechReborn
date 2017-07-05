@@ -24,6 +24,7 @@
 
 package techreborn.blocks.cable;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.properties.IProperty;
@@ -41,11 +42,11 @@ import net.minecraft.util.*;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.ChunkCache;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraftforge.energy.CapabilityEnergy;
 import techreborn.client.TechRebornCreativeTab;
 import techreborn.init.ModBlocks;
 import techreborn.items.tools.ItemWrench;
@@ -87,25 +88,42 @@ public class BlockCable extends BlockContainer {
 	}
 
 	@Override
+	public void neighborChanged(final IBlockState state, final World w, final BlockPos pos, final Block block,
+	                            final BlockPos posNeighbor) {
+		if (!w.isRemote)
+			((TileCable) w.getTileEntity(pos)).scanHandlers(posNeighbor);
+	}
+
+	@Override
+	public void breakBlock(final World w, final BlockPos pos, final IBlockState state) {
+		((TileCable) w.getTileEntity(pos)).disconnectItself();
+
+		super.breakBlock(w, pos, state);
+	}
+
+	@Override
 	public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer playerIn, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
+
+		if (!world.isRemote)
+			playerIn.sendMessage(new TextComponentString("Grid: " + ((TileCable) world.getTileEntity(pos)).getGrid()));
 		ItemStack stack = playerIn.getHeldItem(hand);
-		if(stack.getItem() instanceof ItemWrench && !world.isRemote){ //TODO use new api
-				ItemStack itemStack = new ItemStack(this, 1, getMetaFromState(state));
-				Random rand = new Random();
+		if (stack.getItem() instanceof ItemWrench && !world.isRemote) { //TODO use new api
+			ItemStack itemStack = new ItemStack(this, 1, getMetaFromState(state));
+			Random rand = new Random();
 
-				float dX = rand.nextFloat() * 0.8F + 0.1F;
-				float dY = rand.nextFloat() * 0.8F + 0.1F;
-				float dZ = rand.nextFloat() * 0.8F + 0.1F;
+			float dX = rand.nextFloat() * 0.8F + 0.1F;
+			float dY = rand.nextFloat() * 0.8F + 0.1F;
+			float dZ = rand.nextFloat() * 0.8F + 0.1F;
 
-				EntityItem entityItem = new EntityItem(world, pos.getX() + dX, pos.getY() + dY, pos.getZ() + dZ,
-					itemStack.copy());
+			EntityItem entityItem = new EntityItem(world, pos.getX() + dX, pos.getY() + dY, pos.getZ() + dZ,
+				itemStack.copy());
 
-				float factor = 0.05F;
-				entityItem.motionX = rand.nextGaussian() * factor;
-				entityItem.motionY = rand.nextGaussian() * factor + 0.2F;
-				entityItem.motionZ = rand.nextGaussian() * factor;
-				world.spawnEntity(entityItem);
-				world.setBlockToAir(pos);
+			float factor = 0.05F;
+			entityItem.motionX = rand.nextGaussian() * factor;
+			entityItem.motionY = rand.nextGaussian() * factor + 0.2F;
+			entityItem.motionZ = rand.nextGaussian() * factor;
+			world.spawnEntity(entityItem);
+			world.setBlockToAir(pos);
 		}
 		return super.onBlockActivated(world, pos, state, playerIn, hand, facing, hitX, hitY, hitZ);
 	}
@@ -194,10 +212,9 @@ public class BlockCable extends BlockContainer {
 	public IBlockState getActualState(IBlockState state, IBlockAccess worldIn, BlockPos pos) {
 		IBlockState actualState = state;
 		for (EnumFacing facing : EnumFacing.values()) {
-			TileEntity tileEntity = getTileEntitySafely(worldIn, pos.offset(facing));
-			if (tileEntity != null) {
-				actualState = actualState.withProperty(getProperty(facing), tileEntity.hasCapability(CapabilityEnergy.ENERGY, facing.getOpposite()));
-			}
+			TileCable cable = (TileCable) getTileEntitySafely(worldIn, pos);
+			if (cable != null)
+				actualState = actualState.withProperty(getProperty(facing), cable.isConnected(facing));
 		}
 		return actualState;
 	}
