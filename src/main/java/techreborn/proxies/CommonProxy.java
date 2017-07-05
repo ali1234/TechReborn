@@ -26,6 +26,7 @@ package techreborn.proxies;
 
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
@@ -33,6 +34,7 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import techreborn.Core;
 import techreborn.compat.ICompatModule;
+import techreborn.tiles.cable.grid.CableTickHandler;
 
 public class CommonProxy implements ICompatModule {
 	public static boolean isChiselAround;
@@ -47,7 +49,7 @@ public class CommonProxy implements ICompatModule {
 
 	@Override
 	public void init(FMLInitializationEvent event) {
-
+		MinecraftForge.EVENT_BUS.register(new CableTickHandler());
 	}
 
 	@Override

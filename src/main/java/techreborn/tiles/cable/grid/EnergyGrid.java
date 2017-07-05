@@ -1,9 +1,10 @@
 package techreborn.tiles.cable.grid;
 
+import net.minecraftforge.energy.IEnergyStorage;
 import techreborn.blocks.cable.EnumCableType;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class EnergyGrid extends CableGrid {
@@ -44,36 +45,19 @@ public class EnergyGrid extends CableGrid {
 	void tick() {
 		super.tick();
 
-		/*final Set<ISteamHandler> handlers = this.connectedCables.stream()
-			.flatMap(pipe -> pipe.getConnectedHandlers().stream()).collect(Collectors.toSet());
-		handlers.add(this.tank);
+		Set<IEnergyStorage> handlers = this.connectedCables.stream().flatMap(cable ->
+			cable.getConnectedHandlers().stream()).collect(Collectors.toSet());
 
-		final double average = handlers.stream().mapToDouble(handler -> handler.getPressure()).average().orElse(0);
+		Set<IEnergyStorage> inputs = handlers.stream().filter(IEnergyStorage::canExtract).collect(Collectors.toSet());
+		Set<IEnergyStorage> outputs = handlers.stream().filter(IEnergyStorage::canReceive).collect(Collectors.toSet());
 
-		final ISteamHandler[] above = handlers.stream().filter(handler -> handler.getPressure() - average > 0)
-			.toArray(ISteamHandler[]::new);
-		final ISteamHandler[] below = handlers.stream().filter(handler -> handler.getPressure() - average < 0)
-			.toArray(ISteamHandler[]::new);
+		Long toTransfer = inputs.stream().mapToLong(input -> input.extractEnergy(this.type.transferRate, true)).sum();
 
-		final int drained = Stream.of(above).mapToInt(handler ->
+		if(toTransfer > 0)
 		{
-			return handler.drainSteam(
-				Math.min((int) ((handler.getPressure() - average) * handler.getCapacity()), this.transferCapacity),
-				false);
-		}).sum();
-		int filled = 0;
-
-		for (final ISteamHandler handler : below)
-			filled += handler.fillSteam(
-				Math.max(drained / below.length, Math.min(
-					(int) ((handler.getPressure() - average) * handler.getCapacity()), this.transferCapacity)),
-				true);
-
-		for (final ISteamHandler handler : above)
-			handler.drainSteam(
-				Math.max(filled / above.length, Math.min(
-					(int) ((handler.getPressure() - average) * handler.getCapacity()), this.transferCapacity)),
-				true);*/
+			Map<IEnergyStorage, Integer> transferMap = outputs.stream().collect(Collectors.toMap(Function.identity(),
+				storage -> storage.receiveEnergy(Integer.MAX_VALUE, true)));
+		}
 	}
 
 	public void addConnectedCable(final IEnergyCable cable) {
