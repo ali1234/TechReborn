@@ -41,7 +41,9 @@ import techreborn.blocks.cable.EnumCableType;
 import techreborn.packets.TileSyncRequestPacket;
 import techreborn.tiles.cable.grid.*;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.EnumMap;
+import java.util.EnumSet;
 
 /**
  * Created by modmuss50 on 19/05/2017.
@@ -50,8 +52,8 @@ public class TileCable extends TileEntity implements IEnergyCable, ILoadable {
 	private EnumCableType cableType;
 	private int grid;
 
-	private EnumMap<EnumFacing, IEnergyCable> adjacentCables;
-	private EnumMap<EnumFacing, IEnergyStorage> adjacentHandlers;
+	private final EnumMap<EnumFacing, IEnergyCable> adjacentCables;
+	private final EnumMap<EnumFacing, IEnergyStorage> adjacentHandlers;
 	protected final EnumSet<EnumFacing> renderConnections;
 
 	public TileCable() {
@@ -199,7 +201,7 @@ public class TileCable extends TileEntity implements IEnergyCable, ILoadable {
 	@Override
 	public void onLoad() {
 		super.onLoad();
-		if (!this.world.isRemote && this.getGrid() == -1)
+		if (this.isServer() && this.getGrid() == -1)
 			CableTickHandler.loadables.add(this);
 		else if (this.isClient()) {
 			this.forceSync();
@@ -270,8 +272,8 @@ public class TileCable extends TileEntity implements IEnergyCable, ILoadable {
 	}
 
 	public void sync() {
-		if(this.isServer()) {
-			reborncore.common.network.NetworkManager.sendToAllAround(new CustomDescriptionPacket(this.pos, this.writeToNBT(new NBTTagCompound())), new NetworkRegistry.TargetPoint(this.world.provider.getDimension(), (double)this.pos.getX(), (double)this.pos.getY(), (double)this.pos.getZ(), 64.0D));
+		if (this.isServer()) {
+			reborncore.common.network.NetworkManager.sendToAllAround(new CustomDescriptionPacket(this.pos, this.writeToNBT(new NBTTagCompound())), new NetworkRegistry.TargetPoint(this.world.provider.getDimension(), (double) this.pos.getX(), (double) this.pos.getY(), (double) this.pos.getZ(), 64.0D));
 		}
 	}
 
@@ -280,14 +282,11 @@ public class TileCable extends TileEntity implements IEnergyCable, ILoadable {
 	}
 
 	@Override
-	public void adjacentConnect()
-	{
-		for (final EnumFacing facing : EnumFacing.VALUES)
-		{
+	public void adjacentConnect() {
+		for (final EnumFacing facing : EnumFacing.VALUES) {
 			final TileEntity adjacent = this.getBlockWorld().getTileEntity(this.getAdjacentPos(facing));
-			if (adjacent != null && adjacent instanceof TileCable && this.canConnect((ITileCable<?>) adjacent)
-				&& ((ITileCable<?>) adjacent).canConnect(this))
-			{
+			if (adjacent instanceof TileCable && this.canConnect((ITileCable<?>) adjacent)
+				&& ((ITileCable<?>) adjacent).canConnect(this)) {
 				this.connect(facing, (TileCable) adjacent);
 				((TileCable) adjacent).connect(facing.getOpposite(), this);
 			}

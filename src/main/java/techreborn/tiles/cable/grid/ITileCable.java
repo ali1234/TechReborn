@@ -46,7 +46,7 @@ public interface ITileCable<T extends CableGrid> {
 	default void adjacentConnect() {
 		for (final EnumFacing facing : EnumFacing.VALUES) {
 			final TileEntity adjacent = this.getBlockWorld().getTileEntity(this.getAdjacentPos(facing));
-			if (adjacent != null && adjacent instanceof ITileCable && this.canConnect((ITileCable<?>) adjacent)
+			if (adjacent instanceof ITileCable && this.canConnect((ITileCable<?>) adjacent)
 				&& ((ITileCable<?>) adjacent).canConnect(this)) {
 				this.connect(facing, (ITileCable<T>) adjacent);
 				((ITileCable<T>) adjacent).connect(facing.getOpposite(), this);
