@@ -67,7 +67,7 @@ public class GridManager {
 			if (adjacent.getGrid() != -1) {
 				if (added.getGrid() == -1 && this.getGrid(adjacent.getGrid()) != null && added.canConnect(adjacent)) {
 					added.setGrid(adjacent.getGrid());
-					this.getGrid(added.getGrid()).addCable(added);
+					this.getGrid(adjacent.getGrid()).addCable(added);
 				} else if (this.getGrid(added.getGrid()).canMerge(this.getGrid(adjacent.getGrid())))
 					this.mergeGrids(this.getGrid(added.getGrid()), this.getGrid(adjacent.getGrid()));
 			}
