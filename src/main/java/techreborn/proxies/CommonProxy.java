@@ -24,6 +24,7 @@
 
 package techreborn.proxies;
 
+import com.elytradev.concrete.network.NetworkContext;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraftforge.common.MinecraftForge;
@@ -34,6 +35,8 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import techreborn.Core;
 import techreborn.compat.ICompatModule;
+import techreborn.lib.ModInfo;
+import techreborn.packets.TileSyncRequestPacket;
 import techreborn.tiles.cable.grid.CableTickHandler;
 
 public class CommonProxy implements ICompatModule {
@@ -45,6 +48,8 @@ public class CommonProxy implements ICompatModule {
 		if (isChiselAround) {
 			Core.logHelper.info("Hello chisel, shiny things will be enabled in techreborn");
 		}
+		Core.network = NetworkContext.forChannel(ModInfo.MOD_ID);
+		Core.network.register(TileSyncRequestPacket.class);
 	}
 
 	@Override

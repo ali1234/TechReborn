@@ -106,6 +106,17 @@ public class BlockCable extends BlockContainer {
 
 		if (!world.isRemote)
 			playerIn.sendMessage(new TextComponentString("Grid: " + ((TileCable) world.getTileEntity(pos)).getGrid()));
+		else
+		{
+			String faces = "";
+			for(EnumFacing face : EnumFacing.VALUES)
+			{
+				if(((TileCable) world.getTileEntity(pos)).isConnected(face))
+				faces += " "+face.getName();
+			}
+			playerIn.sendMessage(new TextComponentString("Faces: " + faces));
+			return true;
+		}
 		ItemStack stack = playerIn.getHeldItem(hand);
 		if (stack.getItem() instanceof ItemWrench && !world.isRemote) { //TODO use new api
 			ItemStack itemStack = new ItemStack(this, 1, getMetaFromState(state));

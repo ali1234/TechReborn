@@ -24,6 +24,7 @@
 
 package techreborn;
 
+import com.elytradev.concrete.network.NetworkContext;
 import net.minecraft.block.BlockDispenser;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.MinecraftForge;
@@ -79,6 +80,8 @@ public class Core {
 	public VersionChecker versionChecker;
 	//enable dev featues with -Dtechreborn.devFeatues=true
 	public static final boolean DEV_FEATURES = Boolean.parseBoolean(System.getProperty("techreborn.devFeatues", "false"));
+
+	public static NetworkContext network;
 
 	public Core() {
 		//Forge says to call it here, so yeah

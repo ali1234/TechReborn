@@ -25,6 +25,8 @@
 package techreborn.tiles.cable;
 
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.NetworkManager;
+import net.minecraft.network.play.server.SPacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
@@ -32,13 +34,14 @@ import net.minecraft.world.World;
 import net.minecraftforge.energy.CapabilityEnergy;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.network.NetworkRegistry;
+import reborncore.common.network.packet.CustomDescriptionPacket;
 import techreborn.blocks.cable.BlockCable;
 import techreborn.blocks.cable.EnumCableType;
+import techreborn.packets.TileSyncRequestPacket;
 import techreborn.tiles.cable.grid.*;
 
-import java.util.Collection;
-import java.util.EnumMap;
-import java.util.EnumSet;
+import java.util.*;
 
 /**
  * Created by modmuss50 on 19/05/2017.
@@ -102,7 +105,7 @@ public class TileCable extends TileEntity implements IEnergyCable, ILoadable {
 
 	@Override
 	public EnumFacing[] getConnections() {
-		return this.adjacentCables.keySet().stream().toArray(EnumFacing[]::new);
+		return this.adjacentCables.keySet().toArray(new EnumFacing[this.adjacentCables.size()]);
 	}
 
 	@Override
@@ -145,13 +148,14 @@ public class TileCable extends TileEntity implements IEnergyCable, ILoadable {
 	@Override
 	public void updateState() {
 		if (this.isServer()) {
-			//this.sync();
+			this.sync();
 		}
 	}
 
 	@Override
 	public void connect(final EnumFacing facing, final ITileCable<EnergyGrid> to) {
 		this.adjacentCables.put(facing, (IEnergyCable) to);
+		this.updateState();
 	}
 
 	@Override
@@ -164,7 +168,7 @@ public class TileCable extends TileEntity implements IEnergyCable, ILoadable {
 		this.adjacentHandlers.put(facing, to);
 		this.updateState();
 
-		if (tile != null && tile instanceof IConnectionAware)
+		if (tile instanceof IConnectionAware)
 			((IConnectionAware) tile).connectTrigger(facing.getOpposite(), this.getGridObject());
 	}
 
@@ -172,7 +176,7 @@ public class TileCable extends TileEntity implements IEnergyCable, ILoadable {
 		this.adjacentHandlers.remove(facing);
 		this.updateState();
 
-		if (tile != null && tile instanceof IConnectionAware)
+		if (tile instanceof IConnectionAware)
 			((IConnectionAware) tile).disconnectTrigger(facing.getOpposite(), this.getGridObject());
 	}
 
@@ -182,7 +186,7 @@ public class TileCable extends TileEntity implements IEnergyCable, ILoadable {
 		this.adjacentHandlers.keySet().forEach(facing ->
 		{
 			final TileEntity handler = this.getBlockWorld().getTileEntity(this.getBlockPos().offset(facing));
-			if (handler != null && handler instanceof IConnectionAware)
+			if (handler instanceof IConnectionAware)
 				((IConnectionAware) handler).disconnectTrigger(facing.getOpposite(), this.getGridObject());
 		});
 	}
@@ -198,7 +202,7 @@ public class TileCable extends TileEntity implements IEnergyCable, ILoadable {
 		if (!this.world.isRemote && this.getGrid() == -1)
 			CableTickHandler.loadables.add(this);
 		else if (this.isClient()) {
-			//this.forceSync();
+			this.forceSync();
 		}
 	}
 
@@ -248,8 +252,46 @@ public class TileCable extends TileEntity implements IEnergyCable, ILoadable {
 		return FMLCommonHandler.instance().getEffectiveSide().isClient();
 	}
 
-	public boolean isConnected(final EnumFacing facing)
-	{
+	@Override
+	public SPacketUpdateTileEntity getUpdatePacket() {
+		final NBTTagCompound nbtTag = new NBTTagCompound();
+		this.writeToNBT(nbtTag);
+		return new SPacketUpdateTileEntity(this.pos, 1, nbtTag);
+	}
+
+	@Override
+	public void onDataPacket(final NetworkManager net, final SPacketUpdateTileEntity packet) {
+		this.readFromNBT(packet.getNbtCompound());
+	}
+
+	protected void forceSync() {
+		new TileSyncRequestPacket(this.world.provider.getDimension(), this.getPos().getX(), this.getPos().getY(),
+			this.getPos().getZ()).sendToServer();
+	}
+
+	public void sync() {
+		if(this.isServer()) {
+			reborncore.common.network.NetworkManager.sendToAllAround(new CustomDescriptionPacket(this.pos, this.writeToNBT(new NBTTagCompound())), new NetworkRegistry.TargetPoint(this.world.provider.getDimension(), (double)this.pos.getX(), (double)this.pos.getY(), (double)this.pos.getZ(), 64.0D));
+		}
+	}
+
+	public boolean isConnected(final EnumFacing facing) {
 		return this.renderConnections.contains(facing);
+	}
+
+	@Override
+	public void adjacentConnect()
+	{
+		for (final EnumFacing facing : EnumFacing.VALUES)
+		{
+			final TileEntity adjacent = this.getBlockWorld().getTileEntity(this.getAdjacentPos(facing));
+			if (adjacent != null && adjacent instanceof TileCable && this.canConnect((ITileCable<?>) adjacent)
+				&& ((ITileCable<?>) adjacent).canConnect(this))
+			{
+				this.connect(facing, (TileCable) adjacent);
+				((TileCable) adjacent).connect(facing.getOpposite(), this);
+			}
+		}
+		this.sync();
 	}
 }
