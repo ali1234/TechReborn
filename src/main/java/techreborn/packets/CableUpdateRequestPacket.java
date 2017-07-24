@@ -5,15 +5,13 @@ import com.elytradev.concrete.network.NetworkContext;
 import com.elytradev.concrete.network.annotation.field.MarshalledAs;
 import com.elytradev.concrete.network.annotation.type.ReceivedOn;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.relauncher.Side;
-import reborncore.common.network.packet.CustomDescriptionPacket;
 import techreborn.Core;
+import techreborn.tiles.cable.TileCable;
 
 @ReceivedOn(Side.SERVER)
-public class TileSyncRequestPacket extends Message {
+public class CableUpdateRequestPacket extends Message {
 	@MarshalledAs("i32")
 	private int dimensionId;
 	@MarshalledAs("i32")
@@ -23,11 +21,11 @@ public class TileSyncRequestPacket extends Message {
 	@MarshalledAs("i32")
 	private int z;
 
-	public TileSyncRequestPacket(final NetworkContext ctx) {
+	public CableUpdateRequestPacket(final NetworkContext ctx) {
 		super(ctx);
 	}
 
-	public TileSyncRequestPacket(final int dimensionID, final int x, final int y, final int z) {
+	public CableUpdateRequestPacket(final int dimensionID, final int x, final int y, final int z) {
 		this(Core.network);
 
 		this.dimensionId = dimensionID;
@@ -41,10 +39,9 @@ public class TileSyncRequestPacket extends Message {
 		final BlockPos pos = new BlockPos(this.x, this.y, this.z);
 		if (sender.getEntityWorld().provider.getDimension() == this.dimensionId
 			&& sender.getEntityWorld().getTileEntity(pos) != null)
-			reborncore.common.network.NetworkManager.sendToAllAround(new CustomDescriptionPacket(pos,
-					sender.getEntityWorld().getTileEntity(pos).writeToNBT(new NBTTagCompound())),
-				new NetworkRegistry.TargetPoint(sender.getEntityWorld().provider.getDimension(),
-					(double) pos.getX(), (double) pos.getY(), (double) pos.getZ(), 64.0D));
-
+		{
+			TileCable cable = (TileCable) sender.getEntityWorld().getTileEntity(pos);
+			new  CableUpdatePacket(cable).sendToAllWatching(cable);
+		}
 	}
 }

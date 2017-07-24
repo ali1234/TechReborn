@@ -34,11 +34,10 @@ import net.minecraft.world.World;
 import net.minecraftforge.energy.CapabilityEnergy;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.fml.common.FMLCommonHandler;
-import net.minecraftforge.fml.common.network.NetworkRegistry;
-import reborncore.common.network.packet.CustomDescriptionPacket;
 import techreborn.blocks.cable.BlockCable;
 import techreborn.blocks.cable.EnumCableType;
-import techreborn.packets.TileSyncRequestPacket;
+import techreborn.packets.CableUpdatePacket;
+import techreborn.packets.CableUpdateRequestPacket;
 import techreborn.tiles.cable.grid.*;
 
 import java.util.Collection;
@@ -62,36 +61,6 @@ public class TileCable extends TileEntity implements IEnergyCable, ILoadable {
 		this.adjacentHandlers = new EnumMap<>(EnumFacing.class);
 
 		this.renderConnections = EnumSet.noneOf(EnumFacing.class);
-	}
-
-	@Override
-	public void readFromNBT(final NBTTagCompound tagCompound) {
-		super.readFromNBT(tagCompound);
-
-		final int previousConnections = this.renderConnections.size();
-
-		if (this.isClient()) {
-			this.renderConnections.clear();
-			for (final EnumFacing facing : EnumFacing.VALUES) {
-				if (tagCompound.hasKey("connected" + facing.ordinal()))
-					this.renderConnections.add(facing);
-			}
-			if (this.renderConnections.size() != previousConnections)
-				this.updateState();
-		}
-	}
-
-	@Override
-	public NBTTagCompound writeToNBT(final NBTTagCompound tagCompound) {
-		super.writeToNBT(tagCompound);
-
-		if (this.isServer()) {
-			for (final EnumFacing facing : this.adjacentCables.keySet())
-				tagCompound.setBoolean("connected" + facing.ordinal(), true);
-			for (final EnumFacing facing : this.adjacentHandlers.keySet())
-				tagCompound.setBoolean("connected" + facing.ordinal(), true);
-		}
-		return tagCompound;
 	}
 
 	private EnumCableType getCableType() {
@@ -149,9 +118,10 @@ public class TileCable extends TileEntity implements IEnergyCable, ILoadable {
 
 	@Override
 	public void updateState() {
-		if (this.isServer()) {
+		if (this.isServer())
 			this.sync();
-		}
+		else
+			this.world.markBlockRangeForRenderUpdate(this.pos, this.pos);
 	}
 
 	@Override
@@ -267,13 +237,13 @@ public class TileCable extends TileEntity implements IEnergyCable, ILoadable {
 	}
 
 	protected void forceSync() {
-		new TileSyncRequestPacket(this.world.provider.getDimension(), this.getPos().getX(), this.getPos().getY(),
+		new CableUpdateRequestPacket(this.world.provider.getDimension(), this.getPos().getX(), this.getPos().getY(),
 			this.getPos().getZ()).sendToServer();
 	}
 
 	public void sync() {
 		if (this.isServer()) {
-			reborncore.common.network.NetworkManager.sendToAllAround(new CustomDescriptionPacket(this.pos, this.writeToNBT(new NBTTagCompound())), new NetworkRegistry.TargetPoint(this.world.provider.getDimension(), (double) this.pos.getX(), (double) this.pos.getY(), (double) this.pos.getZ(), 64.0D));
+			new CableUpdatePacket(this).sendToAllWatching(this);
 		}
 	}
 
@@ -281,16 +251,27 @@ public class TileCable extends TileEntity implements IEnergyCable, ILoadable {
 		return this.renderConnections.contains(facing);
 	}
 
-	@Override
-	public void adjacentConnect() {
-		for (final EnumFacing facing : EnumFacing.VALUES) {
-			final TileEntity adjacent = this.getBlockWorld().getTileEntity(this.getAdjacentPos(facing));
-			if (adjacent instanceof TileCable && this.canConnect((ITileCable<?>) adjacent)
-				&& ((ITileCable<?>) adjacent).canConnect(this)) {
-				this.connect(facing, (TileCable) adjacent);
-				((TileCable) adjacent).connect(facing.getOpposite(), this);
-			}
+	public NBTTagCompound writeRenderConnections(NBTTagCompound tag) {
+		if (this.isServer()) {
+			for (final EnumFacing facing : this.adjacentCables.keySet())
+				tag.setBoolean("connected" + facing.ordinal(), true);
+			for (final EnumFacing facing : this.adjacentHandlers.keySet())
+				tag.setBoolean("connected" + facing.ordinal(), true);
 		}
-		this.sync();
+		return tag;
+	}
+
+	public void readRenderConnections(final NBTTagCompound tagCompound) {
+		final int previousConnections = this.renderConnections.size();
+
+		if (this.isClient()) {
+			this.renderConnections.clear();
+			for (final EnumFacing facing : EnumFacing.VALUES) {
+				if (tagCompound.hasKey("connected" + facing.ordinal()))
+					this.renderConnections.add(facing);
+			}
+			if (this.renderConnections.size() != previousConnections)
+				this.updateState();
+		}
 	}
 }
