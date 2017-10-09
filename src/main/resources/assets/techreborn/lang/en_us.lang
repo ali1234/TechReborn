@@ -59,7 +59,12 @@ tile.techreborn:machine_frame.advanced.name=Advanced Machine Frame
 tile.techreborn:machine_frame.basic.name=Basic Machine Frame
 tile.techreborn:ore2.copper.name=Copper Ore
 tile.techreborn:ore2.tin.name=Tin Ore
-tile.techreborn:solar_panel.name=Solar Panel
+tile.techreborn:solar_panel.basic.name=Basic Solar Panel
+tile.techreborn:solar_panel.hybrid.name=Hybrid Solar Panel
+tile.techreborn:solar_panel.advanced.name=Advanced Solar Panel
+tile.techreborn:solar_panel.ultimate.name=Ultimate Solar Panel
+tile.techreborn:solar_panel.quantum.name=Quantum Solar Panel
+
 tile.techreborn:creative_solar_panel.name=Creative Panel
 tile.techreborn:water_mill.name=Water Mill
 tile.techreborn:wind_mill.name=Wind Mill
@@ -519,6 +524,9 @@ item.techreborn.part.advanced_circuit.name=Advanced Electronic Circuit
 item.techreborn.part.coolant_simple.name=10k Coolant Cell
 item.techreborn.part.coolant_triple.name=30k Coolant Cell
 item.techreborn.part.coolant_six.name=60k Coolant Cell
+item.techreborn.part.solar_cell.name=Solar Cell
+item.techreborn.part.compact_solar_cell.name=Compact Solar Cell
+item.techreborn.part.quantum_singularity.name=Quantum Singularity
 
 item.techreborn.frequencyTransmitter.name=Frequency Transmitter
 

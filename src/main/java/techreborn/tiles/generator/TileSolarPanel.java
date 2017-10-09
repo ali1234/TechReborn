@@ -28,77 +28,65 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
 import reborncore.api.IToolDrop;
+import reborncore.api.power.EnumPowerTier;
 import reborncore.common.powerSystem.TilePowerAcceptor;
-import reborncore.common.registration.RebornRegistry;
-import reborncore.common.registration.impl.ConfigRegistry;
-import techreborn.blocks.generator.BlockSolarPanel;
+import techreborn.blocks.generator.solarpanel.BlockSolarPanel;
+import techreborn.blocks.generator.solarpanel.EnumPanelType;
 import techreborn.init.ModBlocks;
-import techreborn.lib.ModInfo;
 
-import java.util.List;
-
-/**
- * Created by modmuss50 on 25/02/2016.
- */
-
-@RebornRegistry(modID = ModInfo.MOD_ID)
 public class TileSolarPanel extends TilePowerAcceptor implements IToolDrop {
 
-	@ConfigRegistry(config = "machines", category = "solar_panel", key = "SolarPanelMaxOutput", comment = "Solar Panel Max Output (Value in EU)")
-	public static int maxOutput = 32;
-	@ConfigRegistry(config = "machines", category = "solar_panel", key = "SolarPanelMaxEnergy", comment = "Solar Panel Max Energy (Value in EU)")
-	public static int maxEnergy = 1000;
-	@ConfigRegistry(config = "machines", category = "solar_panel", key = "SolarPanelEnergyPerTick", comment = "Solar Panel Energy Per Tick (Value in EU)")
-	public static int energyPerTick = 1;
 
-	boolean shouldMakePower = false;
-	boolean lastTickSate = false;
-
+	boolean canSeeSky = false;
 	int powerToAdd;
+	EnumPanelType panel = null;
 
 	public TileSolarPanel() {
 		super();
 	}
 
 	@Override
-	public void update() {
-		super.update();
-		if (!this.world.isRemote) {
-			if (this.world.getTotalWorldTime() % 60 == 0) {
-				this.shouldMakePower = this.isSunOut();
-
-			}
-			if (this.shouldMakePower) {
-				this.powerToAdd = energyPerTick;
-				this.addEnergy(this.powerToAdd);
-			} else {
-				this.powerToAdd = 0;
-			}
-
-			this.world.setBlockState(this.getPos(),
-				this.world.getBlockState(this.getPos()).withProperty(BlockSolarPanel.ACTIVE, this.isSunOut()));
-		}
+	public void onLoad() {
+		this.panel = getPanelType();
 	}
 
 	@Override
-	public void addInfo(final List<String> info, final boolean isRealTile) {
-		super.addInfo(info, isRealTile);
-		if (isRealTile) {
-			// FIXME: 25/02/2016
-			// info.add(TextFormatting.LIGHT_PURPLE + "Power gen/tick " +
-			// TextFormatting.GREEN + PowerSystem.getLocaliszedPower(
-			// powerToAdd)) ;
+	public void update() {
+		super.update();
+		if (this.world.isRemote) {
+			return;
 		}
+		if (world.getTotalWorldTime() % 20 == 0) {
+			canSeeSky = this.world.canBlockSeeSky(this.pos.up());
+		}
+		if (isSunOut()) {
+			this.powerToAdd = panel.generationRateD;
+		} else if (canSeeSky) {
+			this.powerToAdd = panel.generationRateN;
+		} else {
+			this.powerToAdd = 0;
+		}
+
+		this.addEnergy(this.powerToAdd);
 	}
 
 	public boolean isSunOut() {
-		return this.world.canBlockSeeSky(this.pos.up()) && !this.world.isRaining() && !this.world.isThundering()
-			&& this.world.isDaytime();
+		return canSeeSky && !this.world.isRaining() && !this.world.isThundering() && this.world.isDaytime();
+	}
+
+	private EnumPanelType getPanelType() {
+		if (world != null) {
+			return world.getBlockState(pos).getValue(BlockSolarPanel.TYPE);
+		}
+		return EnumPanelType.Basic;
 	}
 
 	@Override
 	public double getBaseMaxPower() {
-		return maxEnergy;
+		if (this.panel != null) {
+			return panel.internalCapacity;
+		}
+		return 0;
 	}
 
 	@Override
@@ -113,7 +101,10 @@ public class TileSolarPanel extends TilePowerAcceptor implements IToolDrop {
 
 	@Override
 	public double getBaseMaxOutput() {
-		return maxOutput;
+		if (this.panel != null) {
+			return this.panel.generationRateD;
+		}
+		return 0;
 	}
 
 	@Override
@@ -122,7 +113,16 @@ public class TileSolarPanel extends TilePowerAcceptor implements IToolDrop {
 	}
 
 	@Override
+	public EnumPowerTier getBaseTier() {
+		if (this.panel != null){
+			return this.panel.powerTier;
+		}
+		return EnumPowerTier.MEDIUM;
+	}
+
+	@Override
 	public ItemStack getToolDrop(final EntityPlayer p0) {
 		return new ItemStack(ModBlocks.SOLAR_PANEL);
 	}
+
 }
